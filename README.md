@@ -21,7 +21,7 @@ NeuroCT Consultant - это интеллектуальная система по
 
 ## 🏗️ Архитектура системы
 
-```mermaid
+```
 graph TB
     A[Невролог] --> B[Терминал/Telegram Bot]
     B --> C[NeuroCT Consultant]
