@@ -175,3 +175,6 @@ go build -o neuroct-consultant main.go
 [📧 Contact](mailto:dev@example.com) | [🐛 Issues](https://github.com/your-username/neuroct-consultant/issues) | [💡 Features](https://github.com/your-username/neuroct-consultant/discussions)
 
 </div>
+
+// > curl -s "https://api.telegram.org/bot8525948932:AAFNFSlD5da7xpyqZON-n86IiSWlJXF462A/setWebhook" \
+  -d "url=https://d5dprdl8m0emb0eqi0b1.svoluuab.apigw.yandexcloud.net/tgwf"
