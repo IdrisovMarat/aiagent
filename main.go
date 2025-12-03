@@ -19,18 +19,14 @@ func main() {
 	// Сбор данных пациента
 	patient := helpers.CollectPatientData()
 
-	// Формируем сообщение для AI агента
-	message := helpers.FormatPatientMessage(patient)
-
 	fmt.Printf("\nСводка по пациенту:\n")
+	fmt.Printf("ФИО пациента: %s\n", patient.Name)
 	fmt.Printf("NIHSS: %d баллов, Время от начала: %s часов\n", patient.NIHSS, patient.OnsetTime)
 	fmt.Printf("Возраст: %d лет, Пол: %s, mRS до инсульта: %d\n", patient.Age, patient.Gender, patient.MRS)
 	fmt.Printf("Сознание: %s\n", patient.Consciousness)
 	fmt.Printf("Неврологические симптомы: %v\n", patient.NeurologicSymptoms)
 	fmt.Printf("Исследования: КТ нативная: %v, КТ ангиография: %v, КТ перфузия: %v\n",
 		patient.CTRequired, patient.CTAngioRequired, patient.CTPerfusionRequired)
-
-	fmt.Println("\nОтправка данных эндоваскулярному хирургу...")
 
 	// Если требуются исследования, сначала создаем их
 	if patient.CTRequired || patient.CTAngioRequired || patient.CTPerfusionRequired {
@@ -41,7 +37,11 @@ func main() {
 		fmt.Println()
 	}
 
+	// Формируем сообщение для AI агента
+	message := helpers.FormatPatientMessage(patient)
+
 	// Отправка запроса AI агенту
+	fmt.Println("\nОтправка данных эндоваскулярному хирургу...")
 	fmt.Print("Запрос консультации... ")
 	executionID, err := cloud.StartWorkflowExecution(message)
 	if err != nil {
@@ -65,5 +65,21 @@ func main() {
 	fmt.Println("════════════════════════════════════════")
 	fmt.Println(response)
 	fmt.Println("════════════════════════════════════════")
+
+	// Сохраняем в PDF
+	pdfPath, err := helpers.SaveReportToPDFSimple(patient.Name, response)
+	if err != nil {
+		fmt.Printf("Ошибка: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Файл успешно создан: %s\n", pdfPath)
+
+	// Сохранение как Markdown
+	err = os.WriteFile("report.md", []byte(response), 0644)
+	if err != nil {
+		fmt.Printf("Ошибка: %v\n", err)
+		return
+	}
 
 }

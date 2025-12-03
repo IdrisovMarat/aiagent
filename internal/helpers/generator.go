@@ -1,9 +1,12 @@
 package helpers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
+	"net/http"
 	"time"
 )
 
@@ -102,6 +105,8 @@ type StudyGenerator struct {
 }
 
 type PatientData struct {
+	ID                  string   `json:"patient_id"`
+	Name                string   `json:"name"`
 	NIHSS               int      `json:"nihss"`
 	OnsetTime           string   `json:"onset_time"`
 	Age                 int      `json:"age"`
@@ -112,6 +117,9 @@ type PatientData struct {
 	CTRequired          bool     `json:"ct_required"`
 	CTAngioRequired     bool     `json:"ct_angio_required"`
 	CTPerfusionRequired bool     `json:"ct_perfusion_required"`
+	CT                  string   `json:"ct"`
+	CTAngio             string   `json:"ct_angio"`
+	CTPerfusion         string   `json:"ct_perfusion"`
 }
 
 // Функции генератора исследований
@@ -275,26 +283,52 @@ func (sg *StudyGenerator) GenerateCTPerfusionStudy() *CTPerfusionStudy {
 	}
 }
 
-func (sg *StudyGenerator) GetClinicalCorrelation() string {
-	correlation := "Клинико-радиологическая корреляция:\n"
-	correlation += fmt.Sprintf("- NIHSS: %d баллов\n", sg.patientData.NIHSS)
-	correlation += fmt.Sprintf("- Сознание: %s\n", sg.patientData.Consciousness)
-	correlation += fmt.Sprintf("- Территория инсульта: %s\n", sg.territory.Name)
-	correlation += fmt.Sprintf("- Типичные симптомы: %v\n", sg.territory.Symptoms)
-	correlation += fmt.Sprintf("- Выявленные симптомы: %v\n", sg.patientData.NeurologicSymptoms)
-	return correlation
-}
-
 func (sg *StudyGenerator) UploadToStorage(study interface{}, studyType string) error {
+	// Маршалим JSON с отступами для читаемости
 	jsonData, err := json.MarshalIndent(study, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("ошибка маршалинга JSON: %w", err)
 	}
 
-	fmt.Printf("Загружаем в папку %s:\n", studyType)
+	// Создаем HTTP клиент с таймаутом
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Создаем PUT запрос для загрузки в S3-совместимое хранилище
+	url := "https://storage.yandexcloud.net/fakect/ctangio/good_angio.json"
+	req, err := http.NewRequest("PUT", url, bytes.NewReader(jsonData))
+	if err != nil {
+		return fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	// Если требуется аутентификация, добавьте заголовки
+	// req.Header.Set("Authorization", "Bearer YOUR_TOKEN")
+	// или для S3:
+	// req.Header.Set("X-YaCloud-SubjectToken", "YOUR_IAM_TOKEN")
+
+	// Устанавливаем необходимые заголовки
+	req.Header.Set("Content-Type", "application/json")
+
+	// Выводим информацию о загрузке
+	fmt.Printf("Загружаем в папку %s по адресу %s:\n", studyType, url)
 	fmt.Println(string(jsonData))
 	fmt.Println("---")
 
-	time.Sleep(1 * time.Second)
+	// Отправляем запрос
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("ошибка отправки запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Проверяем статус ответа
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("ошибка загрузки: статус %d, тело: %s",
+			resp.StatusCode, string(body))
+	}
+
+	fmt.Printf("Успешно загружено. Статус: %s\n", resp.Status)
 	return nil
 }

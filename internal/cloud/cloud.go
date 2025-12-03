@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	gatewayURL   = "https://d5dprdl8m0emb0eqi0b1.svoluuab.apigw.yandexcloud.net/gogw"
+	gatewayURL   = "https://d5d0o8p0jhr8ijomjltb.aqkd4clz.apigw.yandexcloud.net/neurowf"
 	workflowsURL = "https://serverless-workflows.api.cloud.yandex.net/workflows/v1/execution"
 	maxWaitTime  = 60 * time.Second
 	pollInterval = 500 * time.Millisecond
@@ -183,5 +183,6 @@ func getIAMToken() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("execute yc command: %w", err)
 	}
+
 	return string(bytes.TrimSpace(output)), nil
 }
